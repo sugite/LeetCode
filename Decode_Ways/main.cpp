@@ -4,10 +4,12 @@ public:
         if(s.size()==0) return 0;
         if(s[0]=='0') return 0;
         if(s.size()==1 && s[0]!='0') return 1 ;
+        
         // if(s[0]=='0') return numDecodings(s.substr(1));
         // if(s[1]=='0') return numDecodings(s.substr(2));
         // if(s[0]>='1'&&s[0]<='2'&&s[1]<='6') return numDecodings(s.substr(1))+numDecodings(s.substr(2));
         // return numDecodings(s.substr(1));
+        
         int n = s.length();
         vector<int> count(n+1, 0);
         count[0] = 1;
