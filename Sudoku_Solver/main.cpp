@@ -1,136 +1,116 @@
-#define MAXN 1050
-int n =(9*9*9),m =(81+9*9+9*9+9*9);
-int U[MAXN*MAXN];
-int D[MAXN*MAXN];
-int L[MAXN*MAXN];
-int R[MAXN*MAXN];
-int C[MAXN*MAXN]; //to see node[i] belong to which column
-int row[MAXN*MAXN]; // to see node[i] belong to which row
-int ans[MAXN],ansnum;
-int nn[MAXN];
-int mm[MAXN];
-bool map1[MAXN][MAXN];
-int head=0;
-char str[100];
 class Solution {
 public:
-    void read_data(){
-        memset(mm,0,sizeof(mm));
-        for(int i=1;i<=m;i++){
-            R[i-1]=L[i+1]=U[i]=D[i]=i;
+    static const int maxn = 15;
+
+    int n;
+
+    static const int maxCol = maxn * maxn * 4;
+    static const int maxNode = maxCol + maxn * maxn * maxn * 4;
+
+    int ID;
+    int h, S[maxCol], N[maxCol];
+    int U[maxNode], D[maxNode], L[maxNode], R[maxNode], C[maxNode], V[maxNode];
+
+    char str[maxn*maxn];
+
+    bool succ;
+    void DL(int c, bool uncover = false)
+    {
+        if (!uncover) {R[L[c]] = R[c], L[R[c]] = L[c];}
+        else {R[L[c]] = L[R[c]] = c;}
+        for (int i = D[c]; i != c; i = D[i]) {
+            for (int j = R[i]; j != i; j = R[j]) {
+                if (!uncover) {U[D[j]]=U[j], D[U[j]]=D[j], --S[C[j]];}
+                else {U[D[j]] = D[U[j]] = j, ++S[C[j]];}
+            }
         }
-        R[m]=0;
-        R[head]=1;
-        int id=m+1;
-        int x,Rhead;
-        for(int i=0;i<n;i++){
-            Rhead=-1;
-            for(int j=0;j<m;j++){
-                if(map1[i][j]==true){
-                    x=j+1;
-                    mm[x]++;
-                    row[id]=i;
-                    C[id]=x;
-                    //update the column
-                    U[id]=U[x];
-                    D[U[x]]=id;
-                    U[x]=id;
-                    D[id]=x;
-                    //update the row
-                    if(Rhead==-1){
-                        L[id]=R[id]=id;
-                        Rhead=id;
-                    }
-                    else {
-                        L[id]=L[Rhead];
-                        R[L[Rhead]]=id;
-                        L[Rhead]=id;
-                        R[id]=Rhead;
-                    }
-                    id++;
+    }
+    void dfs(int dep)
+    {
+        if (succ || R[h] == h) {
+            succ = true;
+            return ;
+        }
+        int c = R[h];
+        for (int i = R[h]; i != h; i = R[i]) {
+            if (!S[i]) return ;
+            if (S[i] < S[c]) c = i;
+        }
+        DL(c);
+        for (int i = D[c]; i != c; i = D[i]) {
+            N[c] = V[i];
+            for (int j = R[i]; j != i; j = R[j]) {
+                DL(C[j]), N[C[j]] = V[j];
+            }
+            dfs(dep+1);
+            if (succ) return ;
+            for (int j = L[i]; j != i; j = L[j]) {
+                DL(C[j], true);
+            }
+        }
+        DL(c, true);
+    }
+    int add(int c, int v)
+    {
+        ++S[c];
+        L[ID] = R[ID] = ID;
+        U[ID] = U[c], D[ID]  = c;
+        D[U[ID]] = U[D[ID]] = ID;
+        V[ID] = v;
+        C[ID] = c;
+        return ID++;
+    }
+    # define INSR(x, y) do{ L[y]=x,R[y]=R[x];R[L[y]]=L[R[y]]=y; }while(0)
+    void solveSudoku(std::vector<std::vector<char> > &board) {
+        n = 9;
+
+        char str[maxn*maxn];
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                str[i*9+j] = board[i][j];
+            }
+        }
+        str[n*n] = 0;
+
+        h = 4*n*n;
+        for (int c = 0; c <= h; ++c) {
+            S[c] = 0;
+            C[c] = D[c] = U[c] = c;
+            L[c] = (c ? c-1:h), R[c] = (c==h ? 0:c+1);
+        }
+        ID = h + 1;
+        for (int i = 0; str[i]; ++i) {
+            int x = i / 9, y = i % 9;
+            int lo = 1, hi = n;
+            if ('1'<=str[i]&&str[i]<='0'+n) {
+                lo = hi = str[i] - '0';
+                V[i] = str[i] - '0';
+            }
+            for (int j = lo; j <= hi; ++j) {
+                int a = add(i, j);
+                int b = add(n*n+x*9+j-1, j);
+                int c = add(2*n*n+y*9+j-1, j);
+                int d = add(3*n*n+(x/3*3+y/3)*9+j-1, j);
+                INSR(a, b);
+                INSR(b, c);
+                INSR(c, d);
+            }
+        }
+        for (int i = R[h]; i != h; i = R[i]) {
+            if (S[i] == 0) return;
+            if (S[i] == 1) {
+                N[i] = V[i];
+                DL(i);
+                for (int j = D[i]; j != i; j = D[j]) {
+                    for (int k = R[j]; k != j; k = R[k]) DL(C[k]), N[C[k]] = V[k];
                 }
             }
         }
-    }
-    
-    void remove(int c){
-        L[R[c]]=L[c];
-        R[L[c]]=R[c];
-        for(int i=D[c];i!=c;i=D[i]){
-            for(int j=R[i];j!=i;j=R[j]){
-                U[D[j]]=U[j];
-                D[U[j]]=D[j];
-                mm[C[j]]--;
-            }
-        }
-    }
-    
-    void resume(int c){
-        for(int i=U[c];i!=c;i=U[i]){
-            for(int j=L[i];j!=i;j=L[j]){
-                mm[C[j]]++;
-                U[D[j]]=j;
-                D[U[j]]=j;
-            }
-        }
-        L[R[c]]=c;
-        R[L[c]]=c;
-    }
-    
-    bool dfs(int cur){
-        if(R[head]==head){
-            return true;
-        }
-        int s=999999999,c;
-        for(int t=R[head];t!=head;t=R[t]){
-            if(mm[t]<s){
-                s=mm[t];
-                c=t;
-            }
-        }
-        remove(c);
-        for(int i=D[c];i!=c;i=D[i]){
-            ans[row[i]]=true;
-            for(int j=R[i];j!=i;j=R[j]){
-                remove(C[j]);
-            }
-            if(dfs(cur+1))return true;
-            ans[row[i]]=false;
-            for(int j=L[i];j!=i;j=L[j]){
-                resume(C[j]);
-            }
-        }
-        resume(c);
-        return false;
-    }
-    
-    void addrow(int i,int j,int k){
-        int cur=(i*9+j)*9+k;
-        map1[cur][i*9+j]=true;
-        map1[cur][81+i*9+k]=true;
-        map1[cur][81+81+j*9+k]=true;
-        int rc=i/3;
-        int lc=j/3;
-        map1[cur][81+81+81+(rc*3+lc)*9+k]=true;
-    }
-    
-
-
-    void solveSudoku(vector<vector<char>>& board) {
-        memset(map1,false,sizeof(map1));
-        for(int i = 0 ; i < 9 ; ++i){
-            for(int j = 0 ; j < 9 ; ++j){
-                if(board[i][j]=='.') for(int k=0;k<9;k++)addrow(i,j,k);
-                else addrow(i,j,board[i][j]-'1');
-            }
-        }
-        read_data();
-        memset(ans,false,sizeof(ans));
+        succ = false;
         dfs(0);
-        for(int i=0;i<9;i++){
-            for(int j=0;j<9;j++){
-                for(int k=0;k<9;k++)
-                if(ans[(i*9+j)*9+k])board[i][j]=k+1+'0';
+        if (succ) {
+            for (int i = 0; i < n*n; ++i) {
+                board[i/9][i%9] = N[i] + '0';
             }
         }
     }
